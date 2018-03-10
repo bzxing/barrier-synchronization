@@ -40,41 +40,33 @@ private:
 	int m_num_threads = 1;
 };
 
-class HeapInt
+class alignas(LEVEL1_DCACHE_LINESIZE) MyInt
 {
 public:
-	HeapInt() :
-		m_ptr(std::make_unique<int>(0))
-	{
+	MyInt(int val = 0) :
+		m_val(val)
+	{}
 
-	}
-
-	HeapInt(int val) :
-		m_ptr(std::make_unique<int>(0))
-	{
-
-	}
-
-	HeapInt(HeapInt && other) = default;
+	MyInt(MyInt && other) = default;
 
 	operator int()
 	{
-		return *m_ptr;
+		return m_val;
 	}
 
-	HeapInt & operator++()
+	MyInt & operator++()
 	{
-		++(*m_ptr);
+		++m_val;
 		return *this;
 	}
 
-	friend bool operator==(const HeapInt & a, const HeapInt & b)
+	friend bool operator==(const MyInt & a, const MyInt & b)
 	{
-		return *(a.m_ptr) == *(b.m_ptr);
+		return a.m_val == b.m_val;
 	}
 
 private:
-	std::unique_ptr<int> m_ptr;
+	int m_val;
 };
 
 
@@ -100,7 +92,7 @@ int main(int argc, char ** argv)
 
 	{
 		Profiler p("Parallel Section");
-		std::vector<HeapInt> workspace(num_threads);
+		std::vector<MyInt> workspace(num_threads);
 
 		constexpr unsigned kMaxIters = 1 << 22;
 		for (unsigned i = 0; i < kMaxIters; ++i)
