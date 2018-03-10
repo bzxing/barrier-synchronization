@@ -118,16 +118,18 @@ private:
 
     class alignas(64) Node
     {
-        using ArrivalWord = typename boost::uint_t< std::max(ArriveK, 32u) >::fast;
+        using ArrivalWord = uint32_t;
 
-        static constexpr const unsigned num_digits = std::numeric_limits<ArrivalWord>::digits;
+        static constexpr const unsigned kMaxChildren = std::numeric_limits<ArrivalWord>::digits;
 
         static constexpr ArrivalWord get_initial_arrival_word(unsigned num_children_to_arrive)
         {
-            if (num_children_to_arrive == num_digits)
+            if (num_children_to_arrive == kMaxChildren)
             {
                 return 0;
             }
+
+            BOOST_ASSERT(num_children_to_arrive < kMaxChildren);
 
             ArrivalWord word = 1;
 
@@ -148,7 +150,7 @@ private:
         }
 
         // Some simple tests
-        static_assert( get_initial_arrival_word(num_digits) == 0 , "If node has num_digits children, initial arrival word should be all 0s" );
+        static_assert( get_initial_arrival_word(kMaxChildren) == 0 , "If node has kMaxChildren children, initial arrival word should be all 0s" );
         static_assert( get_initial_arrival_word(0) == get_all_arrived_word() , "If node has 0 children, initial arrival word should be all 1s" );
 
     public:

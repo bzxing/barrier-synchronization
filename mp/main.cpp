@@ -96,7 +96,7 @@ int main(int argc, char ** argv)
 		Profiler p("Parallel Section");
 		std::vector<HeapInt> workspace(num_threads);
 
-		constexpr int kMaxIters = 524288;
+		constexpr int kMaxIters = 1 << 21;
 		for (int i = 0; i < kMaxIters; ++i)
 		{
 			#pragma omp parallel
