@@ -96,16 +96,18 @@ void gtmp_barrier(){
 
 void gtmp_barrier_aux(node_t* node, int sense){
 
-  int test = node->count.fetch_sub(1);
+  int test = node->count.fetch_sub(1); // zxing7: Use atomic RMW instruction instead of traditional mutex.
+                                       // Most performance gain comes from here
 
   if( 1 == test )
   {
     if(node->parent != NULL)
       gtmp_barrier_aux(node->parent, sense);
     node->count = node->k;
-    node->locksense = sense;
+    node->locksense = sense; // zxing7: makes more sense to use already-inverted local variable instead of taking the shared node data then burn a cycle to invert it,
+                             // Performance gain should be minor (not a hotspot), but peace of mind hey, guarantees no race condition.
   }
-  else
+  else // zxing7: Adding else clause mostly for clarity not for performance
   {
     while (node->locksense != sense);
   }
