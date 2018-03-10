@@ -116,7 +116,7 @@ private:
     }
 
 
-    class alignas(64) Node
+    class alignas(LEVEL1_DCACHE_LINESIZE) Node
     {
         using ArrivalWord = uint32_t;
 

@@ -77,6 +77,12 @@ private:
 	std::unique_ptr<int> m_ptr;
 };
 
+
+inline bool is_power_of_2(unsigned x)
+{
+	return ((x != 0) && ((x & (~x + 1)) == x));
+}
+
 int main(int argc, char ** argv)
 {
 	// Get num threads
@@ -96,8 +102,8 @@ int main(int argc, char ** argv)
 		Profiler p("Parallel Section");
 		std::vector<HeapInt> workspace(num_threads);
 
-		constexpr int kMaxIters = 1 << 21;
-		for (int i = 0; i < kMaxIters; ++i)
+		constexpr unsigned kMaxIters = 1 << 22;
+		for (unsigned i = 0; i < kMaxIters; ++i)
 		{
 			#pragma omp parallel
 			{
@@ -112,8 +118,17 @@ int main(int argc, char ** argv)
 					BOOST_ASSERT(workspace[thread_id] == workspace[thread_id + 1]);
 				}
 			} // End paralle section
+
+			if (is_power_of_2(i))
+			{
+				std::cout << "." << std::flush;
+			}
 		}
+		std::cout << std::endl;
 	}
+
 
 	gtmp_finalize();
 }
+
+
