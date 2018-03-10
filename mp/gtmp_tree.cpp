@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <omp.h>
+#include <atomic>
 #include "gtmp.h"
 
 /*
@@ -17,12 +18,12 @@
 	    //each element of nodes allocated in a different memory module or cache line
 
 	processor private sense : Boolean := true
-	processor private mynode : ^node // my group's leaf in the combining tree 
+	processor private mynode : ^node // my group's leaf in the combining tree
 
 	procedure combining_barrier
 	    combining_barrier_aux (mynode) // join the barrier
 	    sense := not sense             // for next barrier
-	    
+
 
 	procedure combining_barrier_aux (nodepointer : ^node)
 	    with nodepointer^ do
@@ -37,8 +38,8 @@
 
 typedef struct _node_t{
   int k;
-  int count;
-  int locksense;
+  std::atomic<int> count;
+  std::atomic<int> locksense;
   struct _node_t* parent;
 } node_t;
 
@@ -54,12 +55,12 @@ node_t* _gtmp_get_node(int i){
 void gtmp_init(int num_threads){
   int i, v, num_nodes;
   node_t* curnode;
-  
+
   /*Setting constants */
   v = 1;
   while( v < num_threads)
     v *= 2;
-  
+
   num_nodes = v - 1;
   num_leaves = v/2;
 
@@ -73,7 +74,7 @@ void gtmp_init(int num_threads){
     curnode->locksense = 0;
     curnode->parent = _gtmp_get_node((i-1)/2);
   }
-  
+
   curnode = _gtmp_get_node(0);
   curnode->parent = NULL;
 }
@@ -83,32 +84,32 @@ void gtmp_barrier(){
   int sense;
 
   mynode = _gtmp_get_node(num_leaves - 1 + (omp_get_thread_num() % num_leaves));
-  
-  /* 
-     Rather than correct the sense variable after the call to 
+
+  /*
+     Rather than correct the sense variable after the call to
      the auxilliary method, we set it correctly before.
    */
   sense = !mynode->locksense;
-  
+
   gtmp_barrier_aux(mynode, sense);
 }
 
 void gtmp_barrier_aux(node_t* node, int sense){
-  int test;
 
-#pragma omp critical
-{
-  test = node->count;
-  node->count--;
-}
+  int test = node->count.fetch_sub(1);
 
-  if( 1 == test ){
+  if( 1 == test )
+  {
     if(node->parent != NULL)
       gtmp_barrier_aux(node->parent, sense);
     node->count = node->k;
-    node->locksense = !node->locksense;
+    node->locksense = sense;
   }
-  while (node->locksense != sense);
+  else
+  {
+    while (node->locksense != sense);
+  }
+
 }
 
 void gtmp_finalize(){
