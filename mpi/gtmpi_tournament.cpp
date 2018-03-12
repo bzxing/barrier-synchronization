@@ -62,6 +62,11 @@ extern "C" {
 	sense := not sense
 */
 
+class TournamentNode
+{
+
+};
+
 
 void gtmpi_init(int num_threads)
 {
