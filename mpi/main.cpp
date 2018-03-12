@@ -24,10 +24,12 @@ int main(int argc, char ** argv)
 	MPI_Init(&argc, &argv);
 
 	int num_processes = 1;
-	MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+	int result = MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+	BOOST_ASSERT(result == MPI_SUCCESS);
 
 	int rank = 0;
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	result = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	BOOST_ASSERT(result == MPI_SUCCESS);
 
 	gtmpi_init(num_processes);
 
@@ -40,30 +42,30 @@ int main(int argc, char ** argv)
 		Profiler p(node_string);
 
 		std::string filename(get_filename_for_node(rank));
-		std::fstream fs(filename, std::fstream::in | std::fstream::out | std::fstream::binary | std::fstream::trunc );
+		std::ofstream ofs(filename);
 
-
-		std::fstream next_fs;
+		std::ifstream ifs;
 		if (rank < num_processes - 1)
 		{
 			std::string next_filename(get_filename_for_node(rank + 1));
-			next_fs = std::fstream(filename, std::fstream::in | std::fstream::out | std::fstream::binary | std::fstream::trunc );
+			ifs = std::ifstream(next_filename);
 		}
 
-		const unsigned kMaxIter = (1u << 22);
+		const unsigned kMaxIter = (1u << 16);
 		for (unsigned i = 0; i < kMaxIter; ++i)
 		{
 			// Write file
-			fs.seekg( static_cast<std::fstream::pos_type>(0) );
-			fs << i;
+			ofs.seekp( static_cast<std::ofstream::pos_type>(0) );
+			ofs << i << std::flush;
 			gtmpi_barrier();
 
 			// Check if equal to neighbour
 			if (rank < num_processes - 1)
 			{
-				next_fs.seekg( static_cast<std::fstream::pos_type>(0) );
-				unsigned j = 0;
-				next_fs >> j;
+				ifs.seekg( static_cast<std::ifstream::pos_type>(0) );
+				unsigned j = std::numeric_limits<unsigned>::max();
+				ifs >> j;
+
 				BOOST_ASSERT_MSG(i == j, "My value doesn't equal to my neighbour after the barrier!!");
 			}
 
@@ -75,7 +77,6 @@ int main(int argc, char ** argv)
 	gtmpi_finalize();
 
 	MPI_Finalize();
-
 
 	return 0;
 }

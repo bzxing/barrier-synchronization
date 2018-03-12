@@ -1,6 +1,11 @@
 
 #include <mpi.h>
 
+#include <boost/assert.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+
+#include <limits>
+
 extern "C" {
 	#include "gtmpi.h"
 }
@@ -62,20 +67,153 @@ extern "C" {
 	sense := not sense
 */
 
-class TournamentNode
+class TournamentBarrier
 {
+	static constexpr unsigned char kUnsignedCharInvalid = std::numeric_limits<unsigned char>::max();
+	static constexpr unsigned kUnsignedInvalid = std::numeric_limits<unsigned>::max();
+	static constexpr int kIntInvalid = std::numeric_limits<int>::min();
 
+public:
+	struct InitPlaceholder {};
+
+	TournamentBarrier() = default;
+
+	TournamentBarrier(int num_threads)
+	{
+		BOOST_ASSERT(num_threads > 0);
+		m_world_size = boost::numeric_cast<unsigned>(num_threads);
+	}
+
+	void barrier()
+	{
+		m_rank = get_rank();
+		BOOST_ASSERT(m_world_size == get_world_size());
+
+		unsigned round_opponent_distance = 1;
+
+		// Loop toward championship
+		//
+		// When round_opponent_distance >= m_world_size, it means #0 does not
+		// have opponent, hence competition stops
+		bool is_winner = false;
+		while ( round_opponent_distance < m_world_size )
+		{
+			is_winner = (m_rank % (round_opponent_distance * 2) == 0);
+			if (!is_winner)
+			{
+				BOOST_ASSERT(m_rank >= round_opponent_distance);
+				unsigned opponent = m_rank - round_opponent_distance;
+				arrival_notify_winner(opponent);
+				wakeup_wait_for_winner(opponent);
+				break;
+			}
+
+			// This node is winner!
+			unsigned opponent = m_rank + round_opponent_distance;
+
+			// If opponent is out of range, current node automatically
+			// advances into next round.
+			//
+			// Else, wait on loser to notify
+			if (opponent < m_world_size)
+			{
+				arrival_wait_for_loser(opponent);
+			}
+
+			round_opponent_distance *= 2;
+		}
+
+		// Up until this point, this node has either lost to someone and been waken up by the winner,
+		// or won the championship.
+
+		// Loop to wakeup everyone lost to me
+		//
+		// Keep halving round_opponent_distance until it goes to 0 (it should be 1 during the final round)
+		while (round_opponent_distance > 0)
+		{
+			unsigned loser = m_rank + round_opponent_distance;
+
+			if (loser < m_world_size)
+			{
+				wakeup_loser(loser);
+			}
+
+			round_opponent_distance /= 2;
+		}
+	}
+
+private:
+
+	constexpr static unsigned char kMsgLoserArrival = 1;
+	constexpr static unsigned char kMsgWinnerWakeup = 2;
+
+	void arrival_notify_winner(unsigned opponent)
+	{
+		BOOST_ASSERT(opponent < m_world_size);
+		unsigned char c = kMsgLoserArrival;
+		int result = MPI_Send(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+	}
+
+	void arrival_wait_for_loser(unsigned opponent)
+	{
+		BOOST_ASSERT(opponent < m_world_size);
+		unsigned char c = kUnsignedCharInvalid;
+		int result = MPI_Recv(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+		BOOST_ASSERT(c == kMsgLoserArrival);
+	}
+
+	void wakeup_loser(unsigned opponent)
+	{
+		BOOST_ASSERT(opponent < m_world_size);
+		unsigned char c = kMsgWinnerWakeup;
+		int result = MPI_Send(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 1, MPI_COMM_WORLD);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+	}
+
+	void wakeup_wait_for_winner(unsigned opponent)
+	{
+		BOOST_ASSERT(opponent < m_world_size);
+		unsigned char c = kUnsignedCharInvalid;
+		int result = MPI_Recv(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 1, MPI_COMM_WORLD, nullptr);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+		BOOST_ASSERT(c == kMsgWinnerWakeup);
+	}
+
+
+	static unsigned get_rank()
+	{
+		int rank = kIntInvalid;
+		int result = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+
+		return boost::numeric_cast<unsigned>(rank);
+	}
+
+	static unsigned get_world_size()
+	{
+		int world_size = kIntInvalid;
+		int result = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+		BOOST_ASSERT(result == MPI_SUCCESS);
+
+		return boost::numeric_cast<unsigned>(world_size);
+	}
+
+	unsigned m_world_size = kUnsignedInvalid;
+	unsigned m_rank = kUnsignedInvalid;
 };
 
+static TournamentBarrier s_tournament_barrier;
 
 void gtmpi_init(int num_threads)
 {
-
+	s_tournament_barrier = TournamentBarrier(num_threads);
 }
 
 void gtmpi_barrier()
 {
-
+	s_tournament_barrier.barrier();
 }
 
 void gtmpi_finalize()
