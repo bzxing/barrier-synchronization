@@ -1,3 +1,7 @@
+
+// This is just an example how to link C object to GTMP library
+
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

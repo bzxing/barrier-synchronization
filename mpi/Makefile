@@ -1,9 +1,9 @@
-EXES=counter mcs tree
+EXES=counter dissemination tournament
 EXESFP=$(patsubst %, $(EXEDIR)/%, $(EXES))
-PREFIX=gtmp_
+PREFIX=gtmpi_
 
 
-CC=gcc
+CC=mpicc
 
 DEPFLAGS=-M
 
