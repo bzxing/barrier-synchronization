@@ -10,7 +10,10 @@
 #include <omp.h>
 
 #include "profiler.h"
-#include "gtmp.h"
+
+extern "C" {
+  #include "gtmp.h"
+}
 
 class ArgParse
 {
@@ -121,6 +124,8 @@ int main(int argc, char ** argv)
 
 
 	gtmp_finalize();
+
+	return 0;
 }
 
 

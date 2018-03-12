@@ -3,14 +3,19 @@ EXESFP=$(patsubst %, $(EXEDIR)/%, $(EXES))
 PREFIX=gtmp_
 
 
-CC=g++
+CC=gcc
 
 DEPFLAGS=-M
-CPPFLAGS=-c -g -std=c++14 -Wall -Wextra -Werror \
+
+CFLAGS=-c -g -Wall -Wextra -Werror \
 -Wno-unused-parameter -Wno-unused-result -Wno-unused-variable -Wno-unused-but-set-variable \
 -Wconversion \
 -fopenmp -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_DCACHE_LINESIZE`
-LDFLAGS=-lboost_system -lpthread -lgomp
+
+CPPFLAGS=$(CFLAGS)
+CPPFLAGS+=-std=c++14
+
+LDFLAGS=-lboost_system -lpthread -lgomp -lstdc++
 
 
 
@@ -25,6 +30,7 @@ ifndef DEBUG
 endif
 
 ifneq ($(HIGH_OPTIMIZE), 0)
+	CFLAGS+=-O2 -flto
 	CPPFLAGS+=-O2 -flto
 	LDFLAGS+=-O2 -flto
 endif
@@ -37,12 +43,11 @@ DEPDIR=$(BUILDDIR)/dep
 OBJDIR=$(BUILDDIR)/obj
 EXEDIR=$(ROOTDIR)
 
-SOURCES=$(wildcard *.cpp)
-DEPS=$(SOURCES:.cpp=.d)
-OBJS=$(SOURCES:.cpp=.o)
+SOURCES=$(wildcard *.cpp *.c)
+DEPS=$(addsuffix .d, $(SOURCES))
+OBJS=$(addsuffix .o, $(SOURCES))
 DEPSFP=$(patsubst %, $(DEPDIR)/%, $(DEPS))
 OBJSFP=$(patsubst %, $(OBJDIR)/%, $(OBJS))
-
 
 
 $(shell mkdir -p $(DEPDIR) > /dev/null)
@@ -61,29 +66,41 @@ dep: $(DEPSFP)
 
 .PHONY: clean
 clean:
-	rm -rf $(DEPSFP) \
-	rm -rf $(OBJSFP) \
+	rm -rf $(DEPSFP)
+	rm -rf $(OBJSFP)
 	rm -rf $(EXESFP)
 
-OBJS_NO_GTMP := $(shell echo $(OBJS) | tr " " "\n" | grep -Pv "^$(PREFIX)" )
+OBJS_NO_GTMP=$(shell echo $(OBJS) | tr " " "\n" | grep -Pv "^$(PREFIX)" )
 OBJSFP_NO_GTMP=$(patsubst %, $(OBJDIR)/%, $(OBJS_NO_GTMP))
 
 
-$(EXEDIR)/%: $(OBJSFP_NO_GTMP) $(OBJDIR)/$(PREFIX)%.o
+$(EXEDIR)/%: $(OBJSFP_NO_GTMP) $(OBJDIR)/$(PREFIX)%.cpp.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 
 -include $(DEPSFP)
-$(OBJDIR)/%.o: %.cpp $(DEPDIR)/%.d
+$(OBJDIR)/%.cpp.o: %.cpp $(DEPDIR)/%.cpp.d
 	$(CC) $(CPPFLAGS) $< -o $@
-.PRECIOUS: $(OBJDIR)/%.o
+.PRECIOUS: $(OBJDIR)/%.cpp.o
+
+-include $(DEPSFP)
+$(OBJDIR)/%.c.o: %.c $(DEPDIR)/%.c.d
+	$(CC) $(CFLAGS) $< -o $@
+.PRECIOUS: $(OBJDIR)/%.c.o
 
 
-$(DEPDIR)/%.d: %.cpp
+$(DEPDIR)/%.cpp.d: %.cpp
 	@set -e; rm -f $@; \
 	$(CC) $(DEPFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*, $(OBJDIR)/$(@F:.d=.o) $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
-.PRECIOUS: $(DEPDIR)/%.d
+.PRECIOUS: $(DEPDIR)/%.cpp.d
+
+$(DEPDIR)/%.c.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) $(DEPFLAGS) $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*, $(OBJDIR)/$(@F:.d=.o) $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+.PRECIOUS: $(DEPDIR)/%.c.d
 
 

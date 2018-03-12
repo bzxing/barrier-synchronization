@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <omp.h>
 #include <atomic>
-#include "gtmp.h"
+
+extern "C" {
+  #include "gtmp.h"
+}
 
 /*
 

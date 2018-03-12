@@ -17,7 +17,9 @@
 
 #include "strong_int.h"
 #include "strong_vec.h"
-#include "gtmp.h"
+extern "C" {
+  #include "gtmp.h"
+}
 
 /*
     From the MCS Paper: A scalable, distributed tree-based barrier with only local spinning.

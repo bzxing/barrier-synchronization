@@ -6,7 +6,9 @@
 
 #include <boost/assert.hpp>
 
-#include "gtmp.h"
+extern "C" {
+  #include "gtmp.h"
+}
 
 
 class CounterBarrier
