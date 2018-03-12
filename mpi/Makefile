@@ -4,13 +4,14 @@ PREFIX=gtmpi_
 
 
 CC=mpicc
+CCX=mpiCC
 
 DEPFLAGS=-M
 
 CFLAGS=-c -g -Wall -Wextra -Werror \
 -Wno-unused-parameter -Wno-unused-result -Wno-unused-variable -Wno-unused-but-set-variable \
 -Wconversion \
--fopenmp -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_DCACHE_LINESIZE`
+-fopenmp -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_DCACHE_LINESIZE` \
 
 CPPFLAGS=$(CFLAGS)
 CPPFLAGS+=-std=c++14
@@ -74,12 +75,12 @@ OBJSFP_NO_GTMP=$(patsubst %, $(OBJDIR)/%, $(OBJS_NO_GTMP))
 
 
 $(EXEDIR)/%: $(OBJSFP_NO_GTMP) $(OBJDIR)/$(PREFIX)%.cpp.o
-	$(CC) $^ -o $@ $(LDFLAGS)
+	$(CCX) $^ -o $@ $(LDFLAGS)
 
 
 -include $(DEPSFP)
 $(OBJDIR)/%.cpp.o: %.cpp $(DEPDIR)/%.cpp.d
-	$(CC) $(CPPFLAGS) $< -o $@
+	$(CCX) $(CPPFLAGS) $< -o $@
 .PRECIOUS: $(OBJDIR)/%.cpp.o
 
 -include $(DEPSFP)
@@ -90,7 +91,7 @@ $(OBJDIR)/%.c.o: %.c $(DEPDIR)/%.c.d
 
 $(DEPDIR)/%.cpp.d: %.cpp
 	@set -e; rm -f $@; \
-	$(CC) $(DEPFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
+	$(CCX) $(DEPFLAGS) $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*, $(OBJDIR)/$(@F:.d=.o) $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 .PRECIOUS: $(DEPDIR)/%.cpp.d

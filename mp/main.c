@@ -13,7 +13,8 @@
 #include "omp.h"
 #include "gtmp.h"
 
-inline bool is_power_of_2(unsigned x)
+
+bool is_power_of_2(unsigned x)
 {
 	return ((x != 0) && ((x & (~x + 1)) == x));
 }

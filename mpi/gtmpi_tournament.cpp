@@ -67,12 +67,12 @@ extern "C" {
 	sense := not sense
 */
 
+constexpr unsigned char kUnsignedCharInvalid = std::numeric_limits<unsigned char>::max();
+constexpr unsigned kUnsignedInvalid = std::numeric_limits<unsigned>::max();
+constexpr int kIntInvalid = std::numeric_limits<int>::min();
+
 class TournamentBarrier
 {
-	static constexpr unsigned char kUnsignedCharInvalid = std::numeric_limits<unsigned char>::max();
-	static constexpr unsigned kUnsignedInvalid = std::numeric_limits<unsigned>::max();
-	static constexpr int kIntInvalid = std::numeric_limits<int>::min();
-
 public:
 	struct InitPlaceholder {};
 
