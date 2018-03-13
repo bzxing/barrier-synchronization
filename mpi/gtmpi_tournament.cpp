@@ -87,6 +87,7 @@ public:
 	{
 		m_rank = get_rank();
 		BOOST_ASSERT(m_world_size == get_world_size());
+		BOOST_ASSERT(m_rank < m_world_size);
 
 		unsigned round_opponent_distance = 1;
 

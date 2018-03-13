@@ -3,54 +3,78 @@
 #include <stdio.h>
 #include <mpi.h>
 
+#include "my_utils.h"
+
+#include <boost/assert.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+
+
 extern "C" {
-  #include "gtmpi.h"
+    #include "gtmpi.h"
 }
 
 /*
-    From the MCS Paper: A sense-reversing centralized barrier
+        From the MCS Paper: A sense-reversing centralized barrier
 
-    shared count : integer := P
-    shared sense : Boolean := true
-    processor private local_sense : Boolean := true
+        shared count : integer := P
+        shared sense : Boolean := true
+        processor private local_sense : Boolean := true
 
-    procedure central_barrier
-        local_sense := not local_sense // each processor toggles its own sense
-	if fetch_and_decrement (&count) = 1
-	    count := P
-	    sense := local_sense // last processor toggles global sense
-        else
-           repeat until sense = local_sense
+        procedure central_barrier
+                local_sense := not local_sense // each processor toggles its own sense
+        if fetch_and_decrement (&count) = 1
+                count := P
+                sense := local_sense // last processor toggles global sense
+                else
+                     repeat until sense = local_sense
 */
 
 
-static MPI_Status* status_array;
-static int P;
+static unsigned s_world_size = kUnsignedInvalid;
+// zxing7: Also save the dynamic allocation of the status array that's completely not used.
 
-void gtmpi_init(int num_threads){
-  P = num_threads;
-  status_array = (MPI_Status*) malloc((P - 1) * sizeof(MPI_Status));
+void gtmpi_init(int num_threads)
+{
+    s_world_size = boost::numeric_cast<unsigned>(num_threads);
 }
 
-void gtmpi_barrier(){
-  int vpid, i;
+void gtmpi_barrier()
+{
+    unsigned rank = get_rank();
+    BOOST_ASSERT(rank < s_world_size);
 
-  MPI_Comm_rank(MPI_COMM_WORLD, &vpid);
+    constexpr int kDefaultTag = 0;
 
-  for(i = 0; i < vpid; i++)
-    MPI_Send(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD);
-  for(i = vpid + 1; i < P; i++)
-    MPI_Send(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD);
+    // zxing7:
+    // Instead every node sending to every other node which is O(n^2),
+    // we can make it O(n), as follow:
 
-  for(i = 0; i < vpid; i++)
-    MPI_Recv(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD, &status_array[i]);
-  for(i = vpid + 1; i < P; i++)
-    MPI_Recv(NULL, 0, MPI_INT, i, 1, MPI_COMM_WORLD, &status_array[i-1]);
+    // If not first node, wait for previous node to arrive
+    if (rank != 0)
+    {
+        MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, rank - 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
+    }
+    // If not last node, arrive at next node
+    if (rank != s_world_size - 1)
+    {
+        MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, rank + 1, kDefaultTag, MPI_COMM_WORLD);
+    }
+
+    // If not first node, wake up previous node
+    if (rank != 0)
+    {
+        MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, rank - 1, kDefaultTag, MPI_COMM_WORLD);
+    }
+
+    // If not last node, wait for being waken up by next node
+    if (rank != s_world_size - 1)
+    {
+        MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, rank + 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
+    }
 }
 
-void gtmpi_finalize(){
-  if(status_array != NULL){
-    free(status_array);
-  }
+void gtmpi_finalize()
+{
+
 }
 

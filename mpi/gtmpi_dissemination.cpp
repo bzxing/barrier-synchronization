@@ -56,7 +56,9 @@ public:
     void barrier()
     {
         BOOST_ASSERT( m_world_size == get_world_size() );
+
         m_rank = get_rank();
+        BOOST_ASSERT(m_rank < m_world_size);
 
         unsigned distance = 1;
         constexpr int kDefaultTag = 0;
