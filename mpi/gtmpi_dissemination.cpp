@@ -68,7 +68,7 @@ public:
             // Notify next, blocking
             {
                 unsigned next_rank = (m_rank + distance) % m_world_size;
-                int result = MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR,
+                int result = MPI_Send(nullptr, 0, MPI_INT,
                     boost::numeric_cast<int>(next_rank),
                     kDefaultTag, MPI_COMM_WORLD);
                 BOOST_ASSERT(result == MPI_SUCCESS);
@@ -77,7 +77,7 @@ public:
             // Wait on prev, blocking
             {
                 unsigned prev_rank = (m_rank + m_world_size - distance) % m_world_size;
-                int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR,
+                int result = MPI_Recv(nullptr, 0, MPI_INT,
                     boost::numeric_cast<int>(prev_rank),
                     kDefaultTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 BOOST_ASSERT(result == MPI_SUCCESS);

@@ -32,15 +32,12 @@ extern "C" {
 
 
 static unsigned s_world_size = kUnsignedInvalid;
-//static std::vector<MPI_Request> s_reqs;
-
 
 // zxing7: Also save the dynamic allocation of the status array that's completely not used.
 
 void gtmpi_init(int num_threads)
 {
     s_world_size = boost::numeric_cast<unsigned>(num_threads);
-    //s_reqs.resize(s_world_size);
 }
 
 void gtmpi_barrier()
@@ -57,52 +54,44 @@ void gtmpi_barrier()
     // If not first node, wait for previous node to arrive
     if (rank != 0)
     {
-        MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, rank - 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
+        MPI_Recv(nullptr, 0, MPI_INT, rank - 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
     }
     // If not last node, arrive at next node
     if (rank != s_world_size - 1)
     {
-        MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, rank + 1, kDefaultTag, MPI_COMM_WORLD);
+        MPI_Send(nullptr, 0, MPI_INT, rank + 1, kDefaultTag, MPI_COMM_WORLD);
     }
 
     // If not first node, wake up previous node
     if (rank != 0)
     {
-        MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, rank - 1, kDefaultTag, MPI_COMM_WORLD);
+        MPI_Send(nullptr, 0, MPI_INT, rank - 1, kDefaultTag, MPI_COMM_WORLD);
     }
 
     // If not last node, wait for being waken up by next node
     if (rank != s_world_size - 1)
     {
-        MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, rank + 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
+        MPI_Recv(nullptr, 0, MPI_INT, rank + 1, kDefaultTag, MPI_COMM_WORLD, nullptr);
     }
 
-
-    // if (rank == 0)
-    // {
-    //     for (unsigned i = 1; i < s_world_size; ++i)
-    //     {
-    //         int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR,
-    //             boost::numeric_cast<int>(i), kDefaultTag, MPI_COMM_WORLD, nullptr);
-    //         BOOST_ASSERT(result == MPI_SUCCESS);
-    //     }
-    //     // Wake everyone up
-    //     for (unsigned i = 1; i < s_world_size; ++i)
-    //     {
-    //         int result = MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR,
-    //             boost::numeric_cast<int>(i), kDefaultTag, MPI_COMM_WORLD);
-    //         BOOST_ASSERT(result == MPI_SUCCESS);
-    //     }
-    // }
-    // else
-    // {
-    //     MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, 0, kDefaultTag, MPI_COMM_WORLD);
-    //     MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, 0, kDefaultTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // }
+    // Although on only 8 logical cores on my own machine, the absolute difference
+    // in elapsed time vs the original implementation is tiny, but the time growth
+    // from 2-core to 8-core is noticeably less than the original.
+    //
+    // Following the trend, this O(n) solution should be more scalable on massively
+    // parallel system. The reason being less usage of the
+    // network bandwidth.
+    //
+    // a potential weakness of this design might be the latency, which scales linearly
+    // with the number of nodes but with quite big constant (at least need to
+    // go around each node twice for barrier completion, serially!!) However this should not be
+    // much worse than the original counter implementation, which will also need to send N
+    // and receive N messages per node. The receiving part might be able to use some parallelism,
+    // in the original, but not with my new implementation. I doubt there's much performance loss.
 }
 
 void gtmpi_finalize()
 {
-
+    s_world_size = kUnsignedInvalid;
 }
 
