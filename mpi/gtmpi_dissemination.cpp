@@ -61,8 +61,6 @@ public:
         unsigned distance = 1;
         constexpr int kDefaultTag = 0;
 
-
-
         while (distance < m_world_size)
         {
             // Notify next, blocking
@@ -70,7 +68,7 @@ public:
                 unsigned next_rank = (m_rank + distance) % m_world_size;
                 int result = MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR,
                     boost::numeric_cast<int>(next_rank),
-                    0, MPI_COMM_WORLD);
+                    kDefaultTag, MPI_COMM_WORLD);
                 BOOST_ASSERT(result == MPI_SUCCESS);
             }
 

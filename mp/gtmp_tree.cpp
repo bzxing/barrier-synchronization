@@ -101,6 +101,9 @@ void gtmp_barrier_aux(node_t* node, int sense){
 
   int test = node->count.fetch_sub(1); // zxing7: Use atomic RMW instruction instead of traditional mutex.
                                        // Most performance gain comes from here
+                                       // Overall, the time taken for 2^22 barrier crossings reduced
+                                       // from 9-10 seconds to 7-8 seconds, as measured by my own
+                                       // test case in main.cpp
 
   if( 1 == test )
   {
