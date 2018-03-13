@@ -143,41 +143,32 @@ public:
 
 private:
 
-	constexpr static unsigned char kMsgLoserArrival = 1;
-	constexpr static unsigned char kMsgWinnerWakeup = 2;
-
 	void arrival_notify_winner(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		unsigned char c = kMsgLoserArrival;
-		int result = MPI_Send(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD);
+		int result = MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD);
 		BOOST_ASSERT(result == MPI_SUCCESS);
 	}
 
 	void arrival_wait_for_loser(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		unsigned char c = kUnsignedCharInvalid;
-		int result = MPI_Recv(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
+		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
 		BOOST_ASSERT(result == MPI_SUCCESS);
-		BOOST_ASSERT(c == kMsgLoserArrival);
 	}
 
 	void wakeup_loser(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		unsigned char c = kMsgWinnerWakeup;
-		int result = MPI_Send(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD);
+		int result = MPI_Send(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD);
 		BOOST_ASSERT(result == MPI_SUCCESS);
 	}
 
 	void wakeup_wait_for_winner(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		unsigned char c = kUnsignedCharInvalid;
-		int result = MPI_Recv(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
+		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
 		BOOST_ASSERT(result == MPI_SUCCESS);
-		BOOST_ASSERT(c == kMsgWinnerWakeup);
 	}
 
 	unsigned m_world_size = kUnsignedInvalid;
