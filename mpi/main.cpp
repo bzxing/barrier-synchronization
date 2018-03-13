@@ -9,6 +9,7 @@
 #include <boost/assert.hpp>
 
 #include "profiler.h"
+#include "my_utils.h"
 
 extern "C" {
 	#include "gtmpi.h"
@@ -63,7 +64,7 @@ int main(int argc, char ** argv)
 			if (rank < num_processes - 1)
 			{
 				ifs.seekg( static_cast<std::ifstream::pos_type>(0) );
-				unsigned j = std::numeric_limits<unsigned>::max();
+				unsigned j = kUnsignedInvalid;
 				ifs >> j;
 
 				BOOST_ASSERT_MSG(i == j, "My value doesn't equal to my neighbour after the barrier!!");

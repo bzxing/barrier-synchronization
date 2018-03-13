@@ -1,5 +1,13 @@
 
+
+#include <thread>
+
+#include <boost/assert.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+
 #include <mpi.h>
+
+#include "my_utils.h"
 
 extern "C" {
 #include "gtmpi.h"
@@ -34,15 +42,76 @@ extern "C" {
 	parity := 1 - parity
 */
 
+class DisseminationBarrier
+{
+public:
+    DisseminationBarrier() = default;
 
-void gtmpi_init(int num_threads){
+    DisseminationBarrier(unsigned world_size) :
+        m_world_size(world_size)
+    {
+        BOOST_ASSERT(world_size > 0);
+    }
 
+    void barrier()
+    {
+        BOOST_ASSERT( m_world_size == get_world_size() );
+        m_rank = get_rank();
+
+        unsigned distance = 1;
+        constexpr int kDefaultTag = 0;
+
+
+
+        while (distance < m_world_size)
+        {
+            // Notify next, blocking
+            {
+                unsigned char send_buf = 0;
+                unsigned next_rank = (m_rank + distance) % m_world_size;
+                int result = MPI_Send(&send_buf, 1, MPI_UNSIGNED_CHAR,
+                    boost::numeric_cast<int>(next_rank),
+                    0, MPI_COMM_WORLD);
+                BOOST_ASSERT(result == MPI_SUCCESS);
+            }
+
+            // Wait on prev, blocking
+            {
+                unsigned char recv_buf = 0;
+                MPI_Status recv_status;
+                unsigned prev_rank = (m_rank + m_world_size - distance) % m_world_size;
+                int result = MPI_Recv(&recv_buf, 1, MPI_UNSIGNED_CHAR,
+                    boost::numeric_cast<int>(prev_rank),
+                    kDefaultTag, MPI_COMM_WORLD, &recv_status);
+                BOOST_ASSERT(result == MPI_SUCCESS);
+            };
+
+
+            distance *= 2;
+        }
+    }
+
+private:
+
+
+    unsigned m_world_size = kUnsignedInvalid;
+    unsigned m_rank = kUnsignedInvalid;
+};
+
+static DisseminationBarrier s_barrier;
+
+
+void gtmpi_init(int num_threads)
+{
+    s_barrier = DisseminationBarrier( boost::numeric_cast<unsigned>(num_threads) );
 }
 
-void gtmpi_barrier(){
-
+void gtmpi_barrier()
+{
+    s_barrier.barrier();
 }
 
-void gtmpi_finalize(){
+void gtmpi_finalize()
+{
 
 }

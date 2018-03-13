@@ -6,6 +6,8 @@
 
 #include <limits>
 
+#include "my_utils.h"
+
 extern "C" {
 	#include "gtmpi.h"
 }
@@ -67,9 +69,6 @@ extern "C" {
 	sense := not sense
 */
 
-constexpr unsigned char kUnsignedCharInvalid = std::numeric_limits<unsigned char>::max();
-constexpr unsigned kUnsignedInvalid = std::numeric_limits<unsigned>::max();
-constexpr int kIntInvalid = std::numeric_limits<int>::min();
 
 class TournamentBarrier
 {
@@ -179,25 +178,6 @@ private:
 		int result = MPI_Recv(&c, 1, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
 		BOOST_ASSERT(result == MPI_SUCCESS);
 		BOOST_ASSERT(c == kMsgWinnerWakeup);
-	}
-
-
-	static unsigned get_rank()
-	{
-		int rank = kIntInvalid;
-		int result = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-		BOOST_ASSERT(result == MPI_SUCCESS);
-
-		return boost::numeric_cast<unsigned>(rank);
-	}
-
-	static unsigned get_world_size()
-	{
-		int world_size = kIntInvalid;
-		int result = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-		BOOST_ASSERT(result == MPI_SUCCESS);
-
-		return boost::numeric_cast<unsigned>(world_size);
 	}
 
 	unsigned m_world_size = kUnsignedInvalid;
