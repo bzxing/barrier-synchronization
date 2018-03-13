@@ -38,13 +38,13 @@ extern "C" {
 		repeat until locksense = sense
 */
 
-
-typedef struct _node_t{
+// zxing7: Add extra alignment requirement to make a node occupy entire cache line
+struct alignas(LEVEL1_DCACHE_LINESIZE) node_t {
   int k;
   std::atomic<int> count;
   std::atomic<int> locksense;
-  struct _node_t* parent;
-} node_t;
+  struct node_t* parent;
+} ;
 
 static int num_leaves;
 static node_t* nodes;
