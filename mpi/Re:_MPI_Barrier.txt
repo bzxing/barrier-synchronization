@@ -1,4 +1,45 @@
-Dear Colleague,
+
+Hi Charles,
+
+Thanks for asking for my thoughts! Despite how disappointing it might
+be to find out that the more "clever" algorithms aren't necessarily
+the best, I don't find this completely surprising, the reason being,
+for such a small-scaled cluster with very good network performance,
+the simple, raw latency might matter more than scalability. By moving
+towards more clever barriers, we're effectively trading the latency
+for scalability, exactly the opposite from our optimization goal.
+
+The latency of a simple counter-based barrier has the latency
+of two node-to-node communication: One for notifying all other nodes,
+and one for receiving signal for each node notified (assuming the packets
+can be put in transit concurrently). We might be generating O(n^2) messages,
+but out network can handle that. For 24-node cluster, 24 * 24 * 2 = 1152 :
+our infiniband can eats it for breakfast really.
+
+Take dissemination barrier for example, on 24 nodes, barrier completion would
+require 5 rounds, and on each node these 5 rounds must happen serially.
+We might be saving total number of messages sent over the network, but that
+unfortunately couldn't buy us back the latency lost.
+
+Same idea with the tree-based implementations. The latency increases linearly
+with the tree depth, which can go higher than 2 easily. Again, performance gain
+from reducing the number of messages doesn't outweigh the latency penalty.
+
+Just my two cents. I know my math is still a bit preliminary here - we might
+need to make more measurements to make sure what exactly is going on. Where
+exactly is the one second lost from going from counter to dissemination for example?
+I'm not too familiar with network performance benchmarking (been writing local high performance
+applications for life...) but there must be a way to get more numbers!
+
+
+Cheers,
+Bill
+
+
+
+---------------------------------------------------------------------------
+
+Hey Bill,
 
 As you may already know, I am overseeing the development of a new
 parallel programming library for distributed machines called gtmpi.
@@ -10,8 +51,10 @@ that I could get your to share your thoughts on them.
 In summary, we compared the algorithms presented in the famous
 Mellor-Crummey Scott paper by measuring how long it took for a given
 number of threads to cross 10^5 barriers. All experiments were run on
-a dedicated cluster with one process assigned to each node. 
+a dedicated cluster with one process assigned to each node.
 
 Details individual nodes are attached along with the data from the experiments.
 
 Looking forward to your insight!
+
+Charles
