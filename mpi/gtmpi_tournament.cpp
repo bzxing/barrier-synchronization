@@ -154,7 +154,7 @@ private:
 	void arrival_wait_for_loser(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
+		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		BOOST_ASSERT(result == MPI_SUCCESS);
 	}
 
@@ -168,7 +168,7 @@ private:
 	void wakeup_wait_for_winner(unsigned opponent)
 	{
 		BOOST_ASSERT(opponent < m_world_size);
-		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, nullptr);
+		int result = MPI_Recv(nullptr, 0, MPI_UNSIGNED_CHAR, boost::numeric_cast<int>(opponent), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		BOOST_ASSERT(result == MPI_SUCCESS);
 	}
 
