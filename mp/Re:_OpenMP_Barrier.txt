@@ -1,4 +1,45 @@
-Dear Colleague,
+
+
+Hi Alex,
+
+I took a look at your data and I understand how disappointing it might
+be to see some of the more "clever" algorithms didn't yield better
+performance. However this isn't completely surprising to me. Though
+it's too early to come to a concrete conclusion just yet (we need more
+detailed investigation/profiling), I do have a few guesses/speculations to make,
+on why the odds are with the minimalistic counter algorithm here.
+
+From my intuitive understanding, nothing beats the counter algorithm in terms of
+simplicity and tiny footprint of the machine code. This directly translates to the fact
+that the local hardware (individual CPU core) has much less to do: less instruction
+to fetch and decode, less data to move around, less branch mis-predictions, less
+data to bring into the cache/TLB (and hence less miss?), less randomly chasing
+pointers, etc.
+
+There is with little no doubt theoretical upside with the more clever algorithms
+like MCS tree, but we were really betting on that the upside of reducing the cross-core
+communication overhead will outweigh the penalty from giving the local hardware
+collectively more work to do overall. The assumption might hold true with older hardware,
+where there weren't a lot of bandwidth for cross-core communication, and where the cache
+coherence implementation wasn't smart enough (if they even exists.) But with modern chips
+like the E5 series, this might become much less of a concern, which makes reducing
+the cross-core communication overhead less meaningful on a "small" scale of 24 cores.
+
+Anyways, these are just my two cents. Why don't we just VTune it and see which part
+of the CPU is causing the Tree barrier to be so slow?  We can read the
+precise hardware event counter from VTune sampling.
+Who knows we might see some hotspots in branch predictor, cross core snoop or cache miss?
+It could be some oversight in the code implementation as well.
+We might just have to keep the ball rolling by obtaining more data.
+
+Cheers,
+Bill
+
+
+
+--------------------------------------------------------------------------------
+
+Dear Bill,
 
 As you may already know, I am overseeing the development of a new
 parallel programming library for shared memory machines called gtmp.
@@ -15,4 +56,5 @@ attached along with the data from the experiments.
 
 Looking forward to your insight!
 
+Alex
 
